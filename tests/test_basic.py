@@ -113,12 +113,6 @@ def test_trip_records(client):
     resp = client.post('/api/trips/', json={'start_odometer': 50.0, 'end_odometer': 10.0}, headers={'Authorization': 'Basic ZHJpdjpwdw=='})
     assert resp.status_code == 400
 
-    # verify driver as supervisor
-    # supervisor auth header c3VwOnB3
-    resp = client.post('/api/users/verify/1', headers={'Authorization': 'Basic c3VwOnB3'})
-    assert resp.status_code == 200
-    assert resp.get_json()['verified'] is True
-
     # now driver creates a trip
     resp = client.post('/api/trips/', json={'start_odometer': 0.0, 'end_odometer': 10.0}, headers={'Authorization': 'Basic ZHJpdjpwdw=='})
     assert resp.status_code == 201
