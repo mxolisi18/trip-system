@@ -11,21 +11,36 @@ trip_bp = Blueprint('trips', __name__)
 @auth.login_required
 def list_trips():
     user = auth.current_user()
+    page = int(request.args.get('page', 1))
+    per_page = int(request.args.get('per_page', 20))
+
+    query = Trip.query
     # supervisors see all, drivers only their own
-    if user.role == 'supervisor':
-        trips = Trip.query.all()
-    else:
+    if user.role != 'supervisor':
         if not user.verified:
             return jsonify({'error': 'user not verified'}), 403
-        trips = Trip.query.filter_by(driver_id=user.id).all()
-    return jsonify([{
-        'id': t.id,
-        'driver_id': t.driver_id,
-        'start_time': t.start_time.isoformat() if t.start_time else None,
-        'end_time': t.end_time.isoformat() if t.end_time else None,
-        'distance': t.distance(),
-        'duration': str(t.duration()) if t.duration() else None
-    } for t in trips])
+        query = query.filter_by(driver_id=user.id)
+
+    # optional filtering
+    driver_filter = request.args.get('driver_id')
+    if driver_filter and user.role == 'supervisor':
+        query = query.filter_by(driver_id=int(driver_filter))
+
+    paginated = query.order_by(Trip.id).paginate(page=page, per_page=per_page, error_out=False)
+    trips = paginated.items
+    return jsonify({
+        'page': page,
+        'per_page': per_page,
+        'total': paginated.total,
+        'trips': [{
+            'id': t.id,
+            'driver_id': t.driver_id,
+            'start_time': t.start_time.isoformat() if t.start_time else None,
+            'end_time': t.end_time.isoformat() if t.end_time else None,
+            'distance': t.distance(),
+            'duration': str(t.duration()) if t.duration() else None,
+        } for t in trips]
+    })
 
 
 @trip_bp.route('/', methods=['POST'])
@@ -47,6 +62,12 @@ def create_trip():
                 return jsonify({'error': 'end odometer must be >= start'}), 400
         except (ValueError, TypeError):
             return jsonify({'error': 'invalid odometer values'}), 400
+
+    # prevent overlapping trips by odometer for this driver
+    if start is not None:
+        last = Trip.query.filter_by(driver_id=user.id).order_by(Trip.id.desc()).first()
+        if last and last.end_odometer is not None and start < last.end_odometer:
+            return jsonify({'error': 'trip overlaps previous one'}), 400
 
     trip = Trip(**data)
     db.session.add(trip)

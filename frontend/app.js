@@ -79,13 +79,21 @@ function signup() {
 function createTrip() {
     const start = parseFloat(document.getElementById('start_odometer').value);
     const end = parseFloat(document.getElementById('end_odometer').value);
+    const startLat = parseFloat(document.getElementById('start_lat').value) || null;
+    const startLon = parseFloat(document.getElementById('start_lon').value) || null;
+    const endLat = parseFloat(document.getElementById('end_lat').value) || null;
+    const endLon = parseFloat(document.getElementById('end_lon').value) || null;
+    const notes = document.getElementById('notes').value;
+
+    const payload = { start_odometer: start, end_odometer: end, start_lat: startLat, start_lon: startLon, end_lat: endLat, end_lon: endLon, notes };
+
     fetch('/api/trips/', {
         method: 'POST',
         headers: {
             'Content-Type': 'application/json',
             'Authorization': authHeader
         },
-        body: JSON.stringify({ start_odometer: start, end_odometer: end })
+        body: JSON.stringify(payload)
     }).then(r => r.json()).then(console.log);
 }
 

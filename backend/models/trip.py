@@ -10,6 +10,10 @@ class Trip(db.Model):
     end_time = db.Column(db.DateTime)
     start_odometer = db.Column(db.Float)
     end_odometer = db.Column(db.Float)
+    start_lat = db.Column(db.Float, nullable=True)
+    start_lon = db.Column(db.Float, nullable=True)
+    end_lat = db.Column(db.Float, nullable=True)
+    end_lon = db.Column(db.Float, nullable=True)
     notes = db.Column(db.Text)
 
     def duration(self):

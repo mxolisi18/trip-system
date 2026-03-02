@@ -31,6 +31,24 @@ def create_app(config_object=None):
     def index():
         return app.send_static_file("login.html")
 
+    # seed a default user on startup (development)
+    with app.app_context():
+        from backend.models.user import User
+        # use email as username in our schema
+        username = "mxolisimazwi16@gmail.com"
+        if not User.query.filter_by(username=username).first():
+            user = User(
+                name="Mxolisi Ngema",
+                username=username,
+                phone_number="0760725075",
+                employee_id="01658",
+                company="ZamaSho Group",
+                verified=True,  # pre-verified for convenience
+            )
+            user.set_password("123456")
+            db.session.add(user)
+            db.session.commit()
+
     return app
 
 

@@ -5,10 +5,17 @@ from base64 import b64encode
 
 def test_user_creation_and_auth(client, caplog):
     # seed registry entries
-    from backend.models import EmployeeRegistry, db
+    from backend.models import EmployeeRegistry, db, User
     with client.application.app_context():
         db.session.add(EmployeeRegistry(company='Acme Corp', employee_id='E123'))
         db.session.commit()
+        # default seeded account should already be present
+        assert User.query.filter_by(username='mxolisimazwi16@gmail.com').first() is not None
+
+    # confirm we can authenticate with the seeded credentials
+    auth_header_seed = {'Authorization': 'Basic ' + b64encode(b'mxolisimazwi16@gmail.com:123456').decode()}
+    resp = client.get('/api/users/', headers=auth_header_seed)
+    assert resp.status_code == 200
 
     # valid registration should succeed
     resp = client.post('/api/users/', json={
@@ -118,16 +125,32 @@ def test_trip_records(client):
     assert resp.status_code == 201
     trip_id = resp.get_json()['id']
 
+    # overlapping odometer (start < last end) should be blocked
+    resp = client.post('/api/trips/', json={'start_odometer': 5.0, 'end_odometer': 15.0}, headers={'Authorization': 'Basic ZHJpdjpwdw=='})
+    assert resp.status_code == 400
+
     # driver lists own trips
     resp = client.get('/api/trips/', headers={'Authorization': 'Basic ZHJpdjpwdw=='})
     trips = resp.get_json()
     assert len(trips) == 1
     assert trips[0]['distance'] == 10.0
 
-    # supervisor lists all trips
-    resp = client.get('/api/trips/', headers={'Authorization': 'Basic c3VwOnB3'})
-    trips = resp.get_json()
-    assert len(trips) == 1
+    # supervisor lists all trips with pagination
+    resp = client.get('/api/trips/?page=1&per_page=1', headers={'Authorization': 'Basic c3VwOnB3'})
+    data = resp.get_json()
+    assert data['page'] == 1
+    assert data['per_page'] == 1
+    assert data['total'] >= 1
+    assert len(data['trips']) == 1
+
+    # create additional trip for pagination
+    resp = client.post('/api/trips/', json={'start_odometer': 20.0, 'end_odometer': 30.0}, headers={'Authorization': 'Basic ZHJpdjpwdw=='})
+    assert resp.status_code == 201
+    # now request second page
+    resp = client.get('/api/trips/?page=2&per_page=1', headers={'Authorization': 'Basic c3VwOnB3'})
+    data = resp.get_json()
+    assert data['page'] == 2
+    assert len(data['trips']) == 1
 
 
 # admin functionality tests
