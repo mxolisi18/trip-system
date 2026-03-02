@@ -4,3 +4,4 @@ from backend.extensions import db
 from .trip import Trip
 from .user import User
 from .registry import EmployeeRegistry
+from .attempt import RegistrationAttempt

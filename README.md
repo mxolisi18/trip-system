@@ -5,14 +5,16 @@
   against an `EmployeeRegistry` database table and must be 2–10 alphanumeric
   characters (frontend regex enforces this).
 - Invalid ID/company combinations produce a logged warning and registration is
-  rejected.
+  rejected. Every signup attempt (successful or not) is recorded in a
+  `RegistrationAttempt` table; supervisors can review these via the admin
+  panel or `/api/admin/attempts`.
 - New users are unverified by default; supervisors can approve them via
   `POST /api/users/verify/<user_id>` which sets `verified=True`.
 - Unverified drivers are not allowed to create or view trips.
 
 
 A web-based application to digitize and automate trip sheets for drivers and supervisors.
-
+**Admin panel:** supervisors can manage the employee registry, view user/trip statistics and see all registered users via the `/api/admin` endpoints or the `admin.html` UI (link appears after login). Entries may be added or removed directly and stats are visible on the dashboard.
 ## Project Structure
 
 ```
@@ -31,6 +33,15 @@ trip-system/
 ```
 
 ### Setup & Usage
+
+## Frontend pages
+
+- `login.html` – log in with username/password.
+- `signup.html` – register a new account (requires valid employee ID/company or supervisor role).
+- `landing.html` – user dashboard; links to trips, new trip and (for supervisors) Admin panel.
+- `trips.html` / `newtrip.html` – view and create trip records.
+- `admin.html` – registry management, statistics, and a list of registration attempts (supervisors only).
+
 
 From the workspace root:
 

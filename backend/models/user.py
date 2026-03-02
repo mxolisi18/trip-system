@@ -10,6 +10,8 @@ class User(db.Model):
     employee_id = db.Column(db.String(50))
     company = db.Column(db.String(100))
     verified = db.Column(db.Boolean, default=False)
+    reset_token = db.Column(db.String(64), unique=True, nullable=True)
+    reset_sent_at = db.Column(db.DateTime, nullable=True)
 
     trips = db.relationship('Trip', backref='driver', lazy=True)
 

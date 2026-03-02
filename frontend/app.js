@@ -42,9 +42,9 @@ function signup() {
     }
 
     // enforce simple employee ID format: alphanumeric 2-10 characters
-    const idRegex = /^[A-Za-z0-9]{10,16}$/;
+    const idRegex = /^[A-Za-z0-9]{2,10}$/;
     if (employeeId && !idRegex.test(employeeId)) {
-        alert('Employee ID must be 10-16 alphanumeric characters');
+        alert('Employee ID must be 2-10 alphanumeric characters');
         return;
     }
 
@@ -124,8 +124,107 @@ window.addEventListener('DOMContentLoaded', () => {
         if (currentUser) {
             const greet = document.getElementById('greeting');
             if (greet) greet.textContent = `Welcome, ${currentUser}!`;
+            const adminBtn = document.getElementById('admin_button');
+            if (adminBtn) adminBtn.style.display = 'inline-block';
         } else {
             window.location.href = 'login.html';
         }
     }
+
+    if (window.location.pathname.endsWith('admin.html')) {
+        loadPersistedAuth();
+        if (!currentUser) {
+            window.location.href = 'login.html';
+            return;
+        }
+        loadRegistry();
+        loadStats();
+        loadAttempts();
+    }
 });
+
+// navigation helpers
+function gotoAdmin() {
+    window.location.href = 'admin.html';
+}
+function gotoLanding() {
+    window.location.href = 'landing.html';
+}
+
+// admin helpers
+function loadRegistry() {
+    fetch('/api/admin/registry', { headers: { 'Authorization': authHeader } })
+        .then(r => r.json())
+        .then(regs => {
+            const ul = document.getElementById('registry_list');
+            if (!ul) return;
+            ul.innerHTML = '';
+            regs.forEach(r => {
+                const li = document.createElement('li');
+                li.textContent = `${r.company}: ${r.employee_id}`;
+                const btn = document.createElement('button');
+                btn.textContent = 'Delete';
+                btn.onclick = () => deleteRegistryEntry(r.id);
+                li.appendChild(btn);
+                ul.appendChild(li);
+            });
+        });
+}
+
+function addRegistryEntry() {
+    const company = document.getElementById('admin_company').value;
+    const employeeId = document.getElementById('admin_employee_id').value;
+    fetch('/api/admin/registry', {
+        method: 'POST',
+        headers: {
+            'Content-Type': 'application/json',
+            Authorization: authHeader
+        },
+        body: JSON.stringify({ company, employee_id: employeeId })
+    }).then(r => {
+        if (r.status === 201) {
+            loadRegistry();
+        } else {
+            alert('Failed to add entry');
+        }
+    });
+}
+
+function deleteRegistryEntry(id) {
+    fetch(`/api/admin/registry/${id}`, {
+        method: 'DELETE',
+        headers: { Authorization: authHeader }
+    }).then(r => {
+        if (r.status === 200) loadRegistry();
+    });
+}
+
+function loadStats() {
+    fetch('/api/admin/stats', { headers: { 'Authorization': authHeader } })
+        .then(r => r.json())
+        .then(s => {
+            const ul = document.getElementById('admin_stats');
+            if (!ul) return;
+            ul.innerHTML = '';
+            Object.entries(s).forEach(([k, v]) => {
+                const li = document.createElement('li');
+                li.textContent = `${k}: ${v}`;
+                ul.appendChild(li);
+            });
+        });
+}
+
+function loadAttempts() {
+    fetch('/api/admin/attempts', { headers: { 'Authorization': authHeader } })
+        .then(r => r.json())
+        .then(attempts => {
+            const ul = document.getElementById('attempts_list');
+            if (!ul) return;
+            ul.innerHTML = '';
+            attempts.forEach(a => {
+                const li = document.createElement('li');
+                li.textContent = `${a.timestamp || ''} ${a.company || ''}:${a.employee_id || ''} success=${a.success}`;
+                ul.appendChild(li);
+            });
+        });
+}

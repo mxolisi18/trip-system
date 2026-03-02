@@ -37,6 +37,17 @@ def create_trip():
     data = request.get_json() or {}
     # drivers can only create their own trips
     data['driver_id'] = user.id
+
+    # basic validation: odometer values must make sense
+    start = data.get('start_odometer')
+    end = data.get('end_odometer')
+    if start is not None and end is not None:
+        try:
+            if float(end) < float(start):
+                return jsonify({'error': 'end odometer must be >= start'}), 400
+        except (ValueError, TypeError):
+            return jsonify({'error': 'invalid odometer values'}), 400
+
     trip = Trip(**data)
     db.session.add(trip)
     db.session.commit()

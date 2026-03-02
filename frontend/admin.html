@@ -1,0 +1,33 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Admin Panel - Trip Sheet System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Admin Panel</h1>
+    <div class="container">
+        <section class="card">
+            <h2>Registry Management</h2>
+            <div>
+                <input type="text" id="admin_company" placeholder="Company">
+                <input type="text" id="admin_employee_id" placeholder="Employee ID">
+                <button onclick="addRegistryEntry()">Add Entry</button>
+            </div>
+            <ul id="registry_list"></ul>
+        </section>
+        <section class="card">
+            <h2>Stats</h2>
+            <ul id="admin_stats"></ul>
+        </section>
+        <section class="card">
+            <h2>Registration Attempts</h2>
+            <ul id="attempts_list"></ul>
+        </section>
+        <button onclick="gotoLanding()">Back</button>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>

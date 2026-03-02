@@ -24,6 +24,9 @@ def verify_user(user_id):
     user = User.query.get_or_404(user_id)
     user.verified = True
     db.session.commit()
+    # notify user of verification
+    from backend.mailer import send_email
+    send_email(user.username, "Account Verified", "Your Trip Sheet account has been verified.")
     return jsonify({'id': user.id, 'verified': user.verified})
 
 
@@ -33,8 +36,15 @@ def create_user():
     # expect fields like username/email, password, employee_id, company, etc.
     employee_id = data.get('employee_id')
     company = data.get('company')
+
+    from backend.models import RegistrationAttempt
+    # default attempt record (not yet persisted)
+    attempt = RegistrationAttempt(employee_id=employee_id, company=company, success=False)
+
     # require both ID and company together, otherwise treat as missing
     if (employee_id and not company) or (company and not employee_id):
+        db.session.add(attempt)
+        db.session.commit()
         return jsonify({'error': 'employee_id and company must be provided together'}), 400
 
     # only validate when both fields are provided; supervisors or other roles
@@ -47,6 +57,8 @@ def create_user():
             # log attempt for auditing
             from flask import current_app
             current_app.logger.warning(f"Failed registration attempt: {employee_id}@{company}")
+            db.session.add(attempt)
+            db.session.commit()
             return jsonify({'error': 'invalid employee ID or company'}), 400
 
     password = data.pop('password', None)
@@ -55,6 +67,56 @@ def create_user():
     user = User(**data)
     if password:
         user.set_password(password)
+
+    # mark the earlier attempt as successful before persisting
+    attempt.success = bool(valid)
+    db.session.add(attempt)
+
     db.session.add(user)
     db.session.commit()
+
+    # send notification email (stubbed)
+    from backend.mailer import send_email
+    send_email(user.username, "Welcome to Trip Sheet System", "Your account has been created and is pending verification.")
+
     return jsonify({'id': user.id}), 201
+
+
+@user_bp.route('/reset-request', methods=['POST'])
+def reset_request():
+    data = request.get_json() or {}
+    username = data.get('username')
+    if not username:
+        return jsonify({'error': 'username required'}), 400
+    user = User.query.filter_by(username=username).first()
+    if not user:
+        # do not reveal user existence
+        return jsonify({'status': 'ok'}), 200
+    import uuid
+    from datetime import datetime
+    token = uuid.uuid4().hex
+    user.reset_token = token
+    user.reset_sent_at = datetime.utcnow()
+    db.session.commit()
+    from backend.mailer import send_email
+    send_email(user.username, 'Password reset', f'Use this token to reset: {token}')
+    return jsonify({'status': 'ok'}), 200
+
+
+@user_bp.route('/reset/<token>', methods=['POST'])
+def reset_password(token):
+    data = request.get_json() or {}
+    newpass = data.get('password')
+    if not newpass:
+        return jsonify({'error': 'password required'}), 400
+    user = User.query.filter_by(reset_token=token).first()
+    if not user:
+        return jsonify({'error': 'invalid token'}), 400
+    # optionally check expiry here
+    user.set_password(newpass)
+    user.reset_token = None
+    user.reset_sent_at = None
+    db.session.commit()
+    from backend.mailer import send_email
+    send_email(user.username, 'Password changed', 'Your password has been reset.')
+    return jsonify({'status': 'ok'}), 200
