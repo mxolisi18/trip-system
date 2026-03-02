@@ -1,0 +1,27 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Sign Up - Trip Sheet System</title>
+    <link rel="stylesheet" href="style.css">
+</head>
+<body>
+    <h1>Trip Sheet System</h1>
+    <div class="container">
+        <section id="signup" class="card">
+            <h2>Create Account</h2>
+            <input type="text" id="full_name" placeholder="Full Name">
+            <input type="email" id="email" placeholder="Email">
+            <input type="tel" id="phone" placeholder="Phone Number">
+            <input type="text" id="employee_id" placeholder="Employee ID" pattern="[A-Za-z0-9]{2,10}" title="Alphanumeric, 2-10 characters">
+            <input type="text" id="company" placeholder="Company">
+            <input type="password" id="new_password" placeholder="Password">
+            <input type="password" id="confirm_password" placeholder="Confirm Password">
+            <button onclick="signup()">Register</button>
+            <p>Already have an account? <a href="login.html">Login</a></p>
+        </section>
+    </div>
+    <script src="app.js"></script>
+</body>
+</html>
